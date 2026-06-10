@@ -89,7 +89,11 @@ section:last-child {
 }
 
 .hero {
-    background: linear-gradient(135deg, #001f3f 0%, #0a0e27 100%);
+    background-image: linear-gradient(180deg, rgba(0, 31, 63, 0.75), rgba(0, 31, 63, 0.45)), url('../images/R.jpeg');
+    background-attachment: fixed;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: cover;
     color: #ffc400;
     text-align: center;
     padding: 120px 20px;
@@ -167,6 +171,38 @@ h2::after {
     align-items: center;
 }
 
+.profile-photo-wrapper {
+    position: relative;
+    display: inline-block;
+    transition: transform 0.4s ease, box-shadow 0.4s ease;
+}
+
+.profile-photo-wrapper::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: radial-gradient(circle at 45% 35%, rgba(255, 255, 255, 0.2), transparent 45%), linear-gradient(180deg, rgba(0, 0, 0, 0.05), rgba(0, 0, 0, 0.3));
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    pointer-events: none;
+}
+
+.profile-photo-wrapper::after {
+    content: '';
+    position: absolute;
+    top: 18%;
+    left: 20%;
+    width: 60%;
+    height: 32%;
+    border-radius: 55% 45% 55% 45% / 48% 50% 52% 50%;
+    background: rgba(0, 0, 0, 0.55);
+    opacity: 0;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    pointer-events: none;
+    transform: rotate(-2deg);
+}
+
 .profile-photo {
     width: 300px;
     height: 300px;
@@ -176,6 +212,17 @@ h2::after {
     box-shadow: 0 8px 30px rgba(0, 31, 63, 0.2);
     display: block;
     margin: 0 auto;
+    transition: transform 0.4s ease, box-shadow 0.4s ease;
+}
+
+.profile-photo-wrapper:hover .profile-photo {
+    transform: scale(1.03);
+    box-shadow: 0 12px 35px rgba(0, 31, 63, 0.35);
+}
+
+.profile-photo-wrapper:hover::before,
+.profile-photo-wrapper:hover::after {
+    opacity: 1;
 }
 
 .about p {

@@ -5,6 +5,59 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ryan Woo - Superhero</title>
     <link rel="stylesheet" href="css/styles.css">
+    <style>
+    /* Weather card styles (self-contained widget) */
+    .weather-card {
+        margin: 20px auto 0;
+        display: flex; /* block-level so it sits on its own line under the CTA */
+        align-items: center;
+        gap: 16px;
+        background: linear-gradient(180deg, rgba(2,24,60,0.32), rgba(2,24,60,0.18));
+        border: 1px solid rgba(0,140,255,0.12);
+        padding: 12px 18px;
+        border-radius: 12px;
+        color: #e6f6ff;
+        box-shadow: 0 8px 30px rgba(0, 90, 200, 0.12);
+        backdrop-filter: blur(6px) saturate(120%);
+        min-width: 220px;
+    }
+
+    .weather-emoji {
+        font-size: 36px;
+        line-height: 1;
+        width: 48px;
+        text-align: center;
+    }
+
+    .weather-main {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .weather-temp {
+        font-size: 22px;
+        font-weight: 700;
+        color: #dff4ff;
+    }
+
+    .weather-condition {
+        font-size: 13px;
+        color: #bfe8ff;
+        margin-top: 4px;
+    }
+
+    .weather-location {
+        font-size: 12px;
+        color: #9fd6ff;
+        margin-top: 2px;
+    }
+
+    @media (max-width: 480px) {
+        .weather-card { min-width: 180px; padding: 10px 14px; }
+        .weather-emoji { font-size: 30px; width: 40px; }
+        .weather-temp { font-size: 18px; }
+    }
+    </style>
 </head>
 <body>
     <!-- Header/Navigation -->
@@ -25,6 +78,14 @@
             <h1>Ryan Woo</h1>
             <p>Superhero | Fighting Villains & Protecting the City</p>
             <a href="#portfolio" class="cta-button">Launch a Mission</a>
+            <div id="weather-card" class="weather-card" aria-live="polite" role="status" title="Current weather">
+                <div class="weather-emoji" id="weather-emoji">☁️</div>
+                <div class="weather-main">
+                    <div class="weather-temp" id="weather-temp">--°C</div>
+                    <div class="weather-condition" id="weather-condition">Loading weather…</div>
+                    <div class="weather-location" id="weather-location"></div>
+                </div>
+            </div>
         </div>
     </section>
 
@@ -128,5 +189,83 @@
     <footer>
         <p>&copy; 2026 Ryan Woo. All rights reserved.</p>
     </footer>
+    <script>
+    // Weather widget using Open-Meteo (no API key) and browser geolocation
+    (function(){
+        const emojiEl = document.getElementById('weather-emoji');
+        const tempEl = document.getElementById('weather-temp');
+        const condEl = document.getElementById('weather-condition');
+        const locEl = document.getElementById('weather-location');
+        const card = document.getElementById('weather-card');
+
+        function codeToEmoji(code) {
+            // Based on Open-Meteo weather codes
+            if (code === 0) return {emoji: '☀️', text: 'Clear'};
+            if (code === 1) return {emoji: '🌤️', text: 'Mainly clear'};
+            if (code === 2) return {emoji: '⛅', text: 'Partly cloudy'};
+            if (code === 3) return {emoji: '☁️', text: 'Overcast'};
+            if ([45,48].includes(code)) return {emoji: '🌫️', text: 'Fog'};
+            if (code >= 51 && code <= 57) return {emoji: '🌦️', text: 'Drizzle'};
+            if (code >= 61 && code <= 67) return {emoji: '🌧️', text: 'Rain'};
+            if (code >= 71 && code <= 77) return {emoji: '❄️', text: 'Snow'};
+            if (code >= 80 && code <= 82) return {emoji: '🌦️', text: 'Rain showers'};
+            if (code >= 85 && code <= 86) return {emoji: '❄️', text: 'Snow showers'};
+            if (code >= 95) return {emoji: '⛈️', text: 'Thunderstorm'};
+            return {emoji: '🌈', text: 'Weather'};
+        }
+
+        function showMessage(msg) {
+            condEl.textContent = msg;
+            tempEl.textContent = '--°C';
+            emojiEl.textContent = 'ℹ️';
+            locEl.textContent = '';
+        }
+
+        if (!('geolocation' in navigator)) {
+            showMessage('Geolocation not supported');
+        } else {
+            navigator.geolocation.getCurrentPosition(async (pos) => {
+                const lat = pos.coords.latitude;
+                const lon = pos.coords.longitude;
+                try {
+                    // Fetch current weather
+                    const wRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&timezone=auto`);
+                    if (!wRes.ok) throw new Error('Weather fetch failed');
+                    const wJson = await wRes.json();
+                    const cw = wJson.current_weather;
+                    if (!cw) throw new Error('No current weather');
+                    const t = Math.round(cw.temperature);
+                    const code = cw.weathercode;
+                    const info = codeToEmoji(code);
+                    tempEl.textContent = `${t}°C`;
+                    condEl.textContent = info.text;
+                    emojiEl.textContent = info.emoji;
+
+                    // Try reverse geocoding for location name (optional)
+                    try {
+                        const gRes = await fetch(`https://geocoding-api.open-meteo.com/v1/reverse?latitude=${lat}&longitude=${lon}&count=1`);
+                        if (gRes.ok) {
+                            const gJson = await gRes.json();
+                            if (gJson && gJson.results && gJson.results.length) {
+                                const r = gJson.results[0];
+                                const name = [r.name, r.admin1, r.country].filter(Boolean).join(', ');
+                                locEl.textContent = name;
+                            }
+                        }
+                    } catch (e) {
+                        // ignore reverse geocode errors
+                    }
+                } catch (err) {
+                    console.error(err);
+                    showMessage('Unable to load weather');
+                }
+            }, (err) => {
+                console.warn(err);
+                if (err.code === err.PERMISSION_DENIED) showMessage('Location denied');
+                else showMessage('Location unavailable');
+            }, {enableHighAccuracy: false, timeout: 10000, maximumAge: 600000});
+        }
+    })();
+    </script>
 </body>
 </html>

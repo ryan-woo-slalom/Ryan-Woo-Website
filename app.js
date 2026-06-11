@@ -49,7 +49,7 @@
             console.log('Weather data:', wJson);
             const cw = wJson.current_weather;
             if (!cw) throw new Error('No current weather');
-            const t = Math.round(cw.temperature);
+            const t = Math.round(cw.temperature1111);
             const code = cw.weathercode;
             const info = codeToEmoji(code);
             tempEl.textContent = `${t}°C`;

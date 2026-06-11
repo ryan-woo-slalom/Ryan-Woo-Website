@@ -49,7 +49,7 @@
             console.log('Weather data:', wJson);
             const cw = wJson.current_weather;
             if (!cw) throw new Error('No current weather');
-            const t = Math.round(cw.temperature1111);
+            const t = Math.round(cw.temperature);
             const code = cw.weathercode;
             const info = codeToEmoji(code);
             tempEl.textContent = `${t}°C`;
@@ -89,5 +89,5 @@
         } else {
             showMessage('Location unavailable');
         }
-    }, {enableHighAccuracy: false, timeout: 10000, maximumAge: 600000});
+    }, {enableHighAccuracy: false, timeout: 30000, maximumAge: 600000});
 })();

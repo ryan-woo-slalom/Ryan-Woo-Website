@@ -5,6 +5,8 @@
     const condEl = document.getElementById('weather-condition');
     const locEl = document.getElementById('weather-location');
 
+    console.log('Weather widget initialized');
+
     function codeToEmoji(code) {
         if (code === 0) return {emoji: '☀️', text: 'Clear'};
         if (code === 1) return {emoji: '🌤️', text: 'Mainly clear'};
@@ -28,18 +30,23 @@
     }
 
     if (!('geolocation' in navigator)) {
+        console.warn('Geolocation not supported by browser');
         showMessage('Geolocation not supported');
         return;
     }
 
+    console.log('Requesting geolocation...');
     navigator.geolocation.getCurrentPosition(async (pos) => {
         const lat = pos.coords.latitude;
         const lon = pos.coords.longitude;
+        console.log('Got location:', lat, lon);
 
         try {
             const wRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current_weather=true&timezone=auto`);
+            console.log('Weather API response status:', wRes.status);
             if (!wRes.ok) throw new Error('Weather fetch failed');
             const wJson = await wRes.json();
+            console.log('Weather data:', wJson);
             const cw = wJson.current_weather;
             if (!cw) throw new Error('No current weather');
             const t = Math.round(cw.temperature);
@@ -48,6 +55,7 @@
             tempEl.textContent = `${t}°C`;
             condEl.textContent = info.text;
             emojiEl.textContent = info.emoji;
+            console.log('Weather updated:', info.text, t);
 
             try {
                 const gRes = await fetch(`https://geocoding-api.open-meteo.com/v1/reverse?latitude=${lat}&longitude=${lon}&count=1`);
@@ -57,18 +65,29 @@
                         const r = gJson.results[0];
                         const name = [r.name, r.admin1, r.country].filter(Boolean).join(', ');
                         locEl.textContent = name;
+                        console.log('Location updated:', name);
                     }
                 }
             } catch (e) {
-                // ignore reverse geocode errors
+                console.warn('Reverse geocoding error:', e);
             }
         } catch (err) {
-            console.error(err);
+            console.error('Weather error:', err);
             showMessage('Unable to load weather');
         }
     }, (err) => {
-        console.warn(err);
-        if (err.code === err.PERMISSION_DENIED) showMessage('Location denied');
-        else showMessage('Location unavailable');
+        console.warn('Geolocation error:', err.code, err.message);
+        if (err.code === err.PERMISSION_DENIED) {
+            console.warn('Permission denied - did you reject the location prompt?');
+            showMessage('Location denied');
+        } else if (err.code === err.POSITION_UNAVAILABLE) {
+            console.warn('Position unavailable');
+            showMessage('Location unavailable');
+        } else if (err.code === err.TIMEOUT) {
+            console.warn('Geolocation request timed out');
+            showMessage('Location timeout');
+        } else {
+            showMessage('Location unavailable');
+        }
     }, {enableHighAccuracy: false, timeout: 10000, maximumAge: 600000});
 })();
